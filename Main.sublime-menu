@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "Tools",
+        "mnemonic": "T",
+        "id": "tools",
+        "children": [
+            { "caption": "Markdown Preview", "command": "markdown_preview" }
+        ]
+    }
+]
