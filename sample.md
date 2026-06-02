@@ -19,11 +19,26 @@ plus a [link to example.com](https://example.com).
    2. nested two
 3. third
 
+## Checkboxes
+
+- [ ] This is a checkbox
+- [x] This checkbox is checked
+
 ## Code block
 
 ```python
 def greet(name):
     print(f"Hello, {name}!")
+```
+
+```js
+const greet = (name) => {
+    console.log(message)
+}
+```
+
+```
+Just plain text
 ```
 
 ## Table

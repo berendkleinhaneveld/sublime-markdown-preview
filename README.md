@@ -41,6 +41,8 @@ works around them as best it can:
   active color scheme (see below). Highlighting applies when every code block
   is *fenced* (```` ``` ````); if a document mixes in indented (4-space) code
   blocks, all blocks fall back to a plain monospaced box.
+- **Task lists** (`- [ ]` / `- [x]`) render as ☐ / ☑ glyphs, since minihtml
+  can't draw `<input>` checkboxes; the item shows without a bullet.
 - No JavaScript, forms, flexbox/grid, transforms, or media queries.
 - **Images**: PNG/JPG/GIF only; relative paths are resolved to absolute
   `file://` URLs.

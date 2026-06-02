@@ -12,6 +12,8 @@ relevant gaps:
   * no <table>          -> tables become a monospaced, column-aligned block
   * no <blockquote>     -> rewritten to <div class="md-quote"> so text renders
   * no line-through     -> strikethrough applied via combining char U+0336
+  * no <input>          -> task-list checkboxes become a glyph; the item is
+                           rendered as a bulletless <div> (no list-style in css)
   * image src must be   -> relative <img> sources are rewritten to absolute
     file://, res:// ...     file:// URLs
 """
@@ -50,6 +52,9 @@ _BLOCKQUOTE_OPEN_RE = re.compile(r"<blockquote\b[^>]*>", re.IGNORECASE)
 _BLOCKQUOTE_CLOSE_RE = re.compile(r"</blockquote>", re.IGNORECASE)
 _STRIKE_RE = re.compile(r"<(s|del|strike)\b[^>]*>(.*?)</\1>", re.IGNORECASE | re.DOTALL)
 _COMBINING_STRIKE = "̶"  # combining long stroke overlay
+_CHECKBOX_RE = re.compile(r"<input\b[^>]*task-list-item-checkbox[^>]*>", re.IGNORECASE)
+_CHECKED = "☑"  # ballot box with check (U+2611)
+_UNCHECKED = "☐"  # ballot box (U+2610)
 # Absolute URL (has a scheme) or protocol-relative.
 _ABS_URL_RE = re.compile(r"^(?:[a-z][a-z0-9+.\-]*:|//)", re.IGNORECASE)
 
@@ -61,6 +66,7 @@ def markdown_to_minihtml(text, base_dir=".", colors=None):
     html = _convert_tables(html)
     html = _convert_blockquotes(html)
     html = _strikethrough(html)
+    html = _convert_task_lists(html)
     html = _number_ordered_lists(html)
     html = _absolutize_images(html, base_dir)
     stylesheet = build_stylesheet(dict(DEFAULT_COLORS, **(colors or {})))
@@ -159,6 +165,54 @@ def _strikethrough(html):
         return '<span class="md-strike">{0}</span>'.format("".join(out))
 
     return _STRIKE_RE.sub(repl, html)
+
+
+def _convert_task_lists(html):
+    """Render `- [ ]` / `- [x]` items as checkboxes.
+
+    markdown2's task_list extra emits <input type="checkbox">, which minihtml
+    drops. Replace each checkbox input with a glyph and turn its <li> into a
+    bulletless <div class="task-item"> (minihtml has no list-style to hide the
+    bullet). A stack matches each <li> to its </li> so nested lists are handled;
+    non-task <li>s (including ordinary items in a mixed list) are left as-is.
+    """
+    if "task-list-item-checkbox" not in html:
+        return html
+
+    tokens = _TAG_RE.split(html)
+    out = []
+    li_is_task = []  # one bool per currently-open <li>
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        low = token.lower()
+        if low.startswith("<li"):
+            is_task = _next_child_is_checkbox(tokens, i)
+            li_is_task.append(is_task)
+            out.append('<div class="task-item">' if is_task else token)
+        elif low.startswith("</li"):
+            is_task = li_is_task.pop() if li_is_task else False
+            out.append("</div>" if is_task else token)
+        elif _CHECKBOX_RE.match(token):
+            checked = "checked" in low
+            out.append(
+                '<span class="checkbox">{0}</span>'.format(
+                    _CHECKED if checked else _UNCHECKED
+                )
+            )
+        else:
+            out.append(token)
+        i += 1
+    return "".join(out)
+
+
+def _next_child_is_checkbox(tokens, li_index):
+    """True if the first non-empty token after an <li> is a checkbox <input>."""
+    for token in tokens[li_index + 1 :]:
+        if token.strip() == "":
+            continue
+        return bool(_CHECKBOX_RE.match(token))
+    return False
 
 
 def _number_ordered_lists(html):

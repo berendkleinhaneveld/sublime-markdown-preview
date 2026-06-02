@@ -24,6 +24,9 @@ _CODE_DIV_RE = re.compile(
 )
 # Opening/closing fence: a run of >=3 backticks or tildes, any indentation.
 _FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+# Background declarations in export_to_html output, dropped so the code box uses
+# our single .code-block background instead of doubling it with the editor's.
+_BACKGROUND_RE = re.compile(r"background(-color)?\s*:\s*[^;\"']+;?", re.IGNORECASE)
 
 # source view id -> preview HtmlSheet id
 _previews = {}
@@ -100,10 +103,11 @@ def _highlight_code_blocks(view, text, html):
     fragments = []
     for region in regions:
         try:
-            fragments.append(view.export_to_html(regions=[region], minihtml=True))
+            fragment = view.export_to_html(regions=[region], minihtml=True)
         except Exception as error:
             print("MarkdownPreview: export_to_html failed:", error)
             return html
+        fragments.append(_BACKGROUND_RE.sub("", fragment))
 
     pieces = iter(fragments)
     return _CODE_DIV_RE.sub(

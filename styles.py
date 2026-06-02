@@ -69,6 +69,8 @@ li { line-height: 1.5; margin: 2px 0; }
 .md-ol { margin: 6px 0 6px 22px; padding: 0; }
 .md-li { margin: 2px 0; line-height: 1.5; }
 .li-num { color: %(quote)s; font-weight: bold; }
+.task-item { margin: 2px 0; line-height: 1.5; }
+.checkbox { font-family: monospace; }
 hr { border: none; border-top: 1px solid %(border)s; margin: 16px 0; }
 img { }
 """
