@@ -62,7 +62,9 @@ code {
     margin: 10px 0;
     padding: 2px 0 2px 12px;
 }
-ul { margin: 6px 0 6px 8px; padding: 0; }
+/* padding-left (not margin) keeps the bullet inside the list box so it doesn't
+   hang to the left of the body text; 22px matches .md-ol's indent. */
+ul { margin: 6px 0; padding-left: 22px; }
 li { line-height: 1.5; margin: 2px 0; }
 .md-ol { margin: 6px 0 6px 22px; padding: 0; }
 .md-li { margin: 2px 0; line-height: 1.5; }
