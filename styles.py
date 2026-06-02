@@ -40,7 +40,6 @@ p { line-height: 1.5; margin: 8px 0; }
 a { color: %(accent)s; text-decoration: none; }
 strong, b { font-weight: bold; }
 em, i { font-style: italic; }
-del, s { color: %(quote)s; }
 code {
     background-color: %(code_background)s;
     padding: 1px 4px;
@@ -57,7 +56,7 @@ code {
     font-size: 0.9rem;
     line-height: 1.4;
 }
-blockquote {
+.md-quote {
     border-left: 3px solid %(border)s;
     color: %(quote)s;
     margin: 10px 0;

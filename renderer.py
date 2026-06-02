@@ -10,6 +10,8 @@ relevant gaps:
   * no <pre>            -> fenced code becomes a <div class="code-block">
   * <ol> shows bullets  -> ordered lists get explicit "1." number prefixes
   * no <table>          -> tables become a monospaced, column-aligned block
+  * no <blockquote>     -> rewritten to <div class="md-quote"> so text renders
+  * no line-through     -> strikethrough applied via combining char U+0336
   * image src must be   -> relative <img> sources are rewritten to absolute
     file://, res:// ...     file:// URLs
 """
@@ -44,6 +46,10 @@ _CODEBLOCK_RE = re.compile(
 _ROW_RE = re.compile(r"<tr\b[^>]*>(.*?)</tr>", re.IGNORECASE | re.DOTALL)
 _CELL_RE = re.compile(r"<t[hd]\b[^>]*>(.*?)</t[hd]>", re.IGNORECASE | re.DOTALL)
 _STRIP_TAGS_RE = re.compile(r"<[^>]+>")
+_BLOCKQUOTE_OPEN_RE = re.compile(r"<blockquote\b[^>]*>", re.IGNORECASE)
+_BLOCKQUOTE_CLOSE_RE = re.compile(r"</blockquote>", re.IGNORECASE)
+_STRIKE_RE = re.compile(r"<(s|del|strike)\b[^>]*>(.*?)</\1>", re.IGNORECASE | re.DOTALL)
+_COMBINING_STRIKE = "̶"  # combining long stroke overlay
 # Absolute URL (has a scheme) or protocol-relative.
 _ABS_URL_RE = re.compile(r"^(?:[a-z][a-z0-9+.\-]*:|//)", re.IGNORECASE)
 
@@ -53,6 +59,8 @@ def markdown_to_minihtml(text, base_dir=".", colors=None):
     html = markdown2.markdown(text, extras=MARKDOWN_EXTRAS)
     html = _convert_code_blocks(html)
     html = _convert_tables(html)
+    html = _convert_blockquotes(html)
+    html = _strikethrough(html)
     html = _number_ordered_lists(html)
     html = _absolutize_images(html, base_dir)
     stylesheet = build_stylesheet(dict(DEFAULT_COLORS, **(colors or {})))
@@ -111,6 +119,31 @@ def _convert_tables(html):
 def _strip(cell):
     """Return a cell's plain text (tags removed, entities decoded)."""
     return _html.unescape(_STRIP_TAGS_RE.sub("", cell)).strip()
+
+
+def _convert_blockquotes(html):
+    """Rewrite unsupported <blockquote> to a styled <div> so its text renders."""
+    html = _BLOCKQUOTE_OPEN_RE.sub('<div class="md-quote">', html)
+    return _BLOCKQUOTE_CLOSE_RE.sub("</div>", html)
+
+
+def _strikethrough(html):
+    """Render <s>/<del>/<strike> with a combining strike (minihtml lacks
+    text-decoration: line-through). The overlay char is inserted after each
+    visible character; tags and entities inside are preserved."""
+
+    def repl(match):
+        out = []
+        for part in _TAG_RE.split(match.group(2)):
+            if part.startswith("<") and part.endswith(">"):
+                out.append(part)  # keep nested inline tags as-is
+            else:
+                text = _html.unescape(part)
+                struck = "".join(ch + _COMBINING_STRIKE for ch in text)
+                out.append(_html.escape(struck))
+        return '<span class="md-strike">{0}</span>'.format("".join(out))
+
+    return _STRIKE_RE.sub(repl, html)
 
 
 def _number_ordered_lists(html):
