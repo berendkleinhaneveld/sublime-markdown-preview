@@ -37,15 +37,25 @@ works around them as best it can:
   monospaced, column-aligned text block.
 - **Ordered lists** render as bullets in minihtml, so the plugin injects
   explicit `1.`, `2.` … number prefixes.
-- **Code blocks** have no syntax highlighting (rendered in a monospaced box;
-  whitespace preserved).
+- **Code blocks** are syntax-highlighted using Sublime's own engine and your
+  active color scheme (see below). Highlighting applies when every code block
+  is *fenced* (```` ``` ````); if a document mixes in indented (4-space) code
+  blocks, all blocks fall back to a plain monospaced box.
 - No JavaScript, forms, flexbox/grid, transforms, or media queries.
 - **Images**: PNG/JPG/GIF only; relative paths are resolved to absolute
   `file://` URLs.
 
-If you need full fidelity (real tables, syntax highlighting), a browser-based
-preview such as [MarkdownPreview] is the better fit — but that renders outside
-the editor.
+If you need full fidelity (real tables), a browser-based preview such as
+[MarkdownPreview] is the better fit — but that renders outside the editor.
+
+### Syntax highlighting
+
+Each fenced code block's buffer region is re-rendered with
+`View.export_to_html(..., minihtml=True)`, so colors come straight from the
+color scheme Sublime is already using — no extra highlighter is bundled, and
+every language you have a syntax for is supported. Add a language hint to the
+fence (e.g. ```` ```python ````) so Sublime injects the right grammar; without
+one the block is themed but single-colored.
 
 ## Layout
 

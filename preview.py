@@ -10,12 +10,20 @@ modes, so adding the phantom surface won't touch the renderer.
 """
 
 import os
+import re
 
 import sublime
 import sublime_plugin
 
 from .renderer import markdown_to_minihtml
 from .styles import theme_colors
+
+# A code block emitted by renderer._convert_code_blocks, including its id.
+_CODE_DIV_RE = re.compile(
+    r'<div class="code-block" id="md-code-\d+">.*?</div>', re.DOTALL
+)
+# Opening/closing fence: a run of >=3 backticks or tildes, any indentation.
+_FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
 
 # source view id -> preview HtmlSheet id
 _previews = {}
@@ -40,7 +48,67 @@ def _render(view):
     text = view.substr(sublime.Region(0, view.size()))
     fname = view.file_name()
     base_dir = os.path.dirname(fname) if fname else "."
-    return markdown_to_minihtml(text, base_dir, colors=theme_colors(view))
+    html = markdown_to_minihtml(text, base_dir, colors=theme_colors(view))
+    return _highlight_code_blocks(view, text, html)
+
+
+def _fenced_code_regions(view, text):
+    """Buffer regions for the *contents* of fenced code blocks, in order.
+
+    Computed from the text (not a scope selector) so it's independent of which
+    Markdown syntax package is installed. The actual colors come later from
+    export_to_html, which reads whatever grammar Sublime injected into the fence.
+    """
+    regions = []
+    offset = 0
+    open_fence = None  # (marker_char, marker_len, content_start_offset)
+    for line in text.splitlines(keepends=True):
+        match = _FENCE_RE.match(line)
+        if open_fence is None:
+            if match:
+                marker = match.group(1)
+                open_fence = (marker[0], len(marker), offset + len(line))
+        elif (
+            match
+            and match.group(1)[0] == open_fence[0]
+            and len(match.group(1)) >= open_fence[1]
+        ):
+            start = open_fence[2]
+            if offset > start:
+                regions.append(sublime.Region(start, offset))
+            else:
+                regions.append(sublime.Region(start, start))  # empty block
+            open_fence = None
+        offset += len(line)
+    return regions
+
+
+def _highlight_code_blocks(view, text, html):
+    """Replace plain code-block fallbacks with Sublime-highlighted minihtml.
+
+    Maps the Nth code-block div to the Nth fenced region. If the counts don't
+    match (e.g. indented code blocks are present, or an unclosed fence) or the
+    export fails, the plain monospaced fallback is left untouched.
+    """
+    n_blocks = len(_CODE_DIV_RE.findall(html))
+    if n_blocks == 0:
+        return html
+    regions = _fenced_code_regions(view, text)
+    if len(regions) != n_blocks:
+        return html
+
+    fragments = []
+    for region in regions:
+        try:
+            fragments.append(view.export_to_html(regions=[region], minihtml=True))
+        except Exception as error:
+            print("MarkdownPreview: export_to_html failed:", error)
+            return html
+
+    pieces = iter(fragments)
+    return _CODE_DIV_RE.sub(
+        lambda _m: '<div class="code-block">{0}</div>'.format(next(pieces)), html
+    )
 
 
 def _title(view):

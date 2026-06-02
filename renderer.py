@@ -85,9 +85,22 @@ def _preformat(text):
 
 
 def _convert_code_blocks(html):
+    """Render code blocks as monospaced <div>s.
+
+    Each gets a stable ``id="md-code-N"`` (document order) so the Sublime side
+    (preview.py) can replace it with syntax-highlighted output from
+    ``View.export_to_html``. The monospaced text here is the fallback shown when
+    highlighting isn't available (no Sublime, or counts don't line up).
+    """
+    counter = [0]
+
     def repl(match):
         code = match.group(1).strip("\n")
-        return '<div class="code-block">{0}</div>'.format(_preformat(code))
+        index = counter[0]
+        counter[0] += 1
+        return '<div class="code-block" id="md-code-{0}">{1}</div>'.format(
+            index, _preformat(code)
+        )
 
     return _CODEBLOCK_RE.sub(repl, html)
 
@@ -111,7 +124,9 @@ def _convert_tables(html):
             if i == 0:
                 lines.append("-+-".join("-" * widths[c] for c in range(ncols)))
         escaped = _html.escape("\n".join(lines))
-        return '<div class="code-block">{0}</div>'.format(_preformat(escaped))
+        # table-block (not code-block) so the highlighter doesn't treat the
+        # monospaced table fallback as a code block to syntax-highlight.
+        return '<div class="table-block">{0}</div>'.format(_preformat(escaped))
 
     return _TABLE_RE.sub(repl, html)
 

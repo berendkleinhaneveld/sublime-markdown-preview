@@ -46,7 +46,7 @@ code {
     border-radius: 3px;
     font-family: monospace;
 }
-.code-block {
+.code-block, .table-block {
     background-color: %(code_background)s;
     border: 1px solid %(border)s;
     border-radius: 4px;
