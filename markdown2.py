@@ -2395,11 +2395,18 @@ class Markdown(object):
                     % (leading_indent, codeblock)
                 )
 
-            return "\n%s<pre%s><code%s>%s\n</code></pre>\n" % (
+            # LOCAL PATCH (not in upstream 2.4.13): indent the closing tag to
+            # match the opening <pre>. For a fence indented inside a list item,
+            # an unindented </code></pre> isn't recognized by _hash_html_blocks,
+            # so the block goes un-hashed and later list processing corrupts it
+            # (the list's </li></ul> get swallowed into the code block, and
+            # everything after stops formatting).
+            return "\n%s<pre%s><code%s>%s\n%s</code></pre>\n" % (
                 leading_indent,
                 pre_class_str,
                 code_class_str,
                 codeblock,
+                leading_indent,
             )
         else:
             codeblock = self._encode_code(codeblock)
