@@ -76,12 +76,5 @@ python3 -c "from renderer import markdown_to_minihtml; \
 print(markdown_to_minihtml(open('sample.md').read(), '.'))"
 ```
 
-## Roadmap
-
-- Live split-pane phantom preview (`MarkdownLivePreviewCommand` is stubbed; the
-  renderer is already shared so it slots in without refactoring).
-- Code syntax highlighting.
-- Scroll sync between source and preview.
-
 [minihtml]: https://www.sublimetext.com/docs/minihtml.html
 [MarkdownPreview]: https://packagecontrol.io/packages/MarkdownPreview
