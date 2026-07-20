@@ -12,6 +12,7 @@ DEFAULT_COLORS = {
     "foreground": "#24292e",
     "accent": "#0969da",
     "code_background": "#f6f8fa",
+    "code_foreground": "#cf222e",
     "border": "#d0d7de",
     "quote": "#57606a",
 }
@@ -42,6 +43,7 @@ strong, b { font-weight: bold; }
 em, i { font-style: italic; }
 code {
     background-color: %(code_background)s;
+    color: %(code_foreground)s;
     padding: 1px 4px;
     border-radius: 3px;
     font-family: monospace;
@@ -107,14 +109,31 @@ def theme_colors(view):
         or _normalize(style.get("function"))
         or fg
     )
+    # Use the scheme's own inline-code color when it defines one. Many schemes
+    # (e.g. Ayu-dark) don't, so the scope resolves to the plain foreground; in
+    # that case borrow the string color -- colored in nearly every scheme and
+    # distinct from the link/accent color -- before resorting to accent.
+    code_fg = _scope_foreground(view, "markup.raw.inline.markdown")
+    if not code_fg or code_fg == fg:
+        string_fg = _scope_foreground(view, "string")
+        code_fg = string_fg if string_fg and string_fg != fg else accent
     return {
         "background": bg,
         "foreground": fg,
         "accent": accent,
         "code_background": _mix(bg, fg, 0.06),
+        "code_foreground": code_fg,
         "border": _mix(bg, fg, 0.20),
         "quote": _mix(bg, fg, 0.45),
     }
+
+
+def _scope_foreground(view, scope):
+    """Resolved foreground hex for `scope` under the active scheme, or None."""
+    try:
+        return _normalize(view.style_for_scope(scope).get("foreground"))
+    except Exception:
+        return None
 
 
 def _normalize(value):

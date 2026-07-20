@@ -43,7 +43,7 @@ _TAG_RE = re.compile(r"(<[^>]+>)")
 _IMG_RE = re.compile(r'<img\b([^>]*?)\bsrc="([^"]*)"([^>]*)>', re.IGNORECASE)
 _TABLE_RE = re.compile(r"<table\b[^>]*>.*?</table>", re.IGNORECASE | re.DOTALL)
 _CODEBLOCK_RE = re.compile(
-    r"<pre\b[^>]*>\s*<code\b[^>]*>(.*?)</code>\s*</pre>", re.IGNORECASE | re.DOTALL
+    r"<pre\b([^>]*)>\s*<code\b[^>]*>(.*?)</code>\s*</pre>", re.IGNORECASE | re.DOTALL
 )
 _ROW_RE = re.compile(r"<tr\b[^>]*>(.*?)</tr>", re.IGNORECASE | re.DOTALL)
 _CELL_RE = re.compile(r"<t[hd]\b[^>]*>(.*?)</t[hd]>", re.IGNORECASE | re.DOTALL)
@@ -93,15 +93,22 @@ def _preformat(text):
 def _convert_code_blocks(html):
     """Render code blocks as monospaced <div>s.
 
-    Each gets a stable ``id="md-code-N"`` (document order) so the Sublime side
-    (preview.py) can replace it with syntax-highlighted output from
-    ``View.export_to_html``. The monospaced text here is the fallback shown when
-    highlighting isn't available (no Sublime, or counts don't line up).
+    Fenced blocks (tagged ``data-md-fenced`` by the markdown2 patch) get a
+    stable ``id="md-code-N"`` (document order) so the Sublime side (preview.py)
+    can replace each with syntax-highlighted output from ``View.export_to_html``.
+    Indented code blocks have no language, so they're emitted as a bare
+    ``code-block`` div with no id and are never highlighted -- keeping the
+    id/fence counts aligned so a stray indented block doesn't disable
+    highlighting for the whole document. The monospaced text is also the fallback
+    shown when highlighting isn't available (no Sublime, or counts don't line up).
     """
     counter = [0]
 
     def repl(match):
-        code = match.group(1).strip("\n")
+        is_fenced = "data-md-fenced" in match.group(1)
+        code = match.group(2).strip("\n")
+        if not is_fenced:
+            return '<div class="code-block">{0}</div>'.format(_preformat(code))
         index = counter[0]
         counter[0] += 1
         return '<div class="code-block" id="md-code-{0}">{1}</div>'.format(

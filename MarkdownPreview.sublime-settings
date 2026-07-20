@@ -1,0 +1,13 @@
+{
+    // Open the preview beside the source instead of as a tab in the same group.
+    // When true: the preview reuses the group next to the active one, splitting
+    // the window into two columns first if there is only one group.
+    "open_to_side": false,
+
+    // Fraction of the window width (0.1 - 0.9) given to the preview pane when
+    // "open_to_side" creates the split. minihtml cannot cap content width via
+    // CSS, so the preview's width is controlled by the pane it lives in. Only
+    // applies when a new split is created; an existing adjacent group is reused
+    // at its current size and left untouched.
+    "preview_width": 0.5
+}

@@ -36,6 +36,12 @@ _pending = {}
 _MD_EXTENSIONS = (".md", ".markdown", ".mdown", ".mkd", ".mkdn", ".mdwn")
 _DEBOUNCE_MS = 400
 
+_SETTINGS_FILE = "MarkdownPreview.sublime-settings"
+
+
+def _settings():
+    return sublime.load_settings(_SETTINGS_FILE)
+
 
 def _is_markdown(view):
     if view is None:
@@ -133,6 +139,33 @@ def _find_sheet(window, view):
     return None
 
 
+def _side_group(window):
+    """Group to host the preview when opening it to the side.
+
+    Reuses the group next to the active one; if the window has a single group,
+    it's first split into two columns so there is a group to put the preview in.
+    """
+    active = window.active_group()
+    num = window.num_groups()
+    if num == 1:
+        try:
+            fraction = float(_settings().get("preview_width", 0.5))
+        except (TypeError, ValueError):
+            fraction = 0.5
+        fraction = min(max(fraction, 0.1), 0.9)
+        window.set_layout(
+            {
+                "cols": [0.0, 1.0 - fraction, 1.0],
+                "rows": [0.0, 1.0],
+                "cells": [[0, 0, 1, 1], [1, 0, 2, 1]],
+            }
+        )
+        return 1
+    # Prefer the group to the right; fall back to the left when already rightmost
+    # so a 3+ group layout reuses a truly adjacent group rather than wrapping.
+    return active + 1 if active + 1 < num else active - 1
+
+
 def _refresh(view):
     window = view.window() or sublime.active_window()
     if window is None:
@@ -154,10 +187,10 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
             sheet.set_contents(_render(self.view))
             window.focus_sheet(sheet)
             return
-        # Open in the adjacent group when the window is split, else the current one.
-        group = window.active_group()
-        if window.num_groups() > 1:
-            group = (group + 1) % window.num_groups()
+        if _settings().get("open_to_side", True):
+            group = _side_group(window)
+        else:
+            group = window.active_group()
         sheet = window.new_html_sheet(
             _title(self.view), _render(self.view), group=group
         )

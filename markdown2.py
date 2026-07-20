@@ -2401,7 +2401,11 @@ class Markdown(object):
             # so the block goes un-hashed and later list processing corrupts it
             # (the list's </li></ul> get swallowed into the code block, and
             # everything after stops formatting).
-            return "\n%s<pre%s><code%s>%s\n%s</code></pre>\n" % (
+            #
+            # LOCAL PATCH: tag fenced blocks with data-md-fenced so the preview
+            # renderer can tell them apart from indented code blocks (both emit
+            # a bare <pre><code> here) and only syntax-highlight the fenced ones.
+            return '\n%s<pre data-md-fenced="1"%s><code%s>%s\n%s</code></pre>\n' % (
                 leading_indent,
                 pre_class_str,
                 code_class_str,
