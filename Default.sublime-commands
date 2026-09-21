@@ -1,3 +1,4 @@
 [
-    { "caption": "Markdown Preview: Open / Refresh", "command": "markdown_preview" }
+    { "caption": "Markdown Preview: Open Preview", "command": "markdown_preview" },
+    { "caption": "Markdown Preview: Open Preview to the Side", "command": "markdown_preview_to_side" }
 ]

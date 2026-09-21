@@ -181,33 +181,42 @@ def _refresh(view):
 class MarkdownPreviewCommand(sublime_plugin.TextCommand):
     """Open the preview sheet for the current file, or refresh it if already open."""
 
-    def run(self, edit, group=None, focus_preview=False):
+    def run(self, edit, group=None, focus_preview=True, to_side=False):
         window = self.view.window()
         if window is None:
             return
-        sheet = _find_sheet(window, self.view)
-        if sheet is not None:
-            sheet.set_contents(_render(self.view))
-            window.focus_sheet(sheet)
-            return
         if group is None:
-            if _settings().get("open_to_side", True):
+            if to_side:
                 group = _side_group(window)
             else:
                 group = window.active_group()
-        sheet = window.new_html_sheet(
-            _title(self.view), _render(self.view), group=group
-        )
-        _previews[self.view.id()] = sheet.id()
-        if focus_preview:
-            window.focus_sheet(sheet)
+        sheet = _find_sheet(window, self.view)
+        if sheet is not None:
+            sheet.set_contents(_render(self.view))
+            if window.get_sheet_index(sheet)[0] != group:
+                window.set_sheet_index(sheet, group, 0)
         else:
+            sheet = window.new_html_sheet(
+                _title(self.view), _render(self.view), group=group
+            )
+            _previews[self.view.id()] = sheet.id()
+        # Select the preview even when returning focus to the source, so an
+        # existing preview isn't hidden behind another tab in the side group.
+        window.focus_sheet(sheet)
+        if not focus_preview:
             window.focus_view(self.view)
 
     def is_enabled(self):
         return _is_markdown(self.view)
 
     is_visible = is_enabled
+
+
+class MarkdownPreviewToSideCommand(MarkdownPreviewCommand):
+    """Show the preview beside the source and keep focus in the editor."""
+
+    def run(self, edit):
+        super().run(edit, to_side=True, focus_preview=False)
 
 
 class MarkdownPreviewOpenLinkCommand(sublime_plugin.WindowCommand):

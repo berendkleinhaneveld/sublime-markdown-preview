@@ -12,6 +12,8 @@ class PreviewTests(PreviewTestCase):
         self.view.file_name.return_value = '/project/notes.md'
         self.window = self.view.window.return_value
         self.window.sheets.return_value = []
+        self.window.active_group.return_value = 0
+        self.window.get_sheet_index.return_value = (0, 0)
 
     def test_markdown_detection_from_syntax_or_extension(self):
         self.assertFalse(self.preview._is_markdown(None))
@@ -143,3 +145,57 @@ class PreviewTests(PreviewTestCase):
         with patch.object(self.preview, '_refresh') as refresh:
             self.preview.MarkdownPreviewEvents().on_post_save_async(self.view)
             refresh.assert_called_once_with(self.view)
+
+    def test_default_command_opens_in_current_group_and_focuses_preview(self):
+        command = self.preview.MarkdownPreviewCommand()
+        command.view = self.view
+        with patch.object(self.preview, '_render', return_value='contents'):
+            command.run(None)
+        self.window.new_html_sheet.assert_called_once_with('Preview: notes.md', 'contents', group=0)
+        self.window.focus_sheet.assert_called_once_with(self.window.new_html_sheet.return_value)
+        self.window.focus_view.assert_not_called()
+        self.window.set_layout.assert_not_called()
+        self.sublime.load_settings.assert_not_called()
+
+    def test_side_command_creates_split_and_returns_focus_to_source(self):
+        self.window.num_groups.return_value = 1
+        self.sublime.load_settings.return_value.get.return_value = 0.5
+        command = self.preview.MarkdownPreviewToSideCommand()
+        command.view = self.view
+        with patch.object(self.preview, '_render', return_value='contents'):
+            command.run(None)
+        self.window.new_html_sheet.assert_called_once_with('Preview: notes.md', 'contents', group=1)
+        self.window.set_layout.assert_called_once()
+        focus_calls = [call[0] for call in self.window.method_calls if call[0].startswith('focus_')]
+        self.assertEqual(focus_calls, ['focus_sheet', 'focus_view'])
+        self.window.focus_view.assert_called_once_with(self.view)
+
+    def test_switching_commands_moves_existing_preview_and_preserves_focus_contract(self):
+        sheet = Mock(spec=self.sublime.HtmlSheet)
+        sheet.id = Mock(return_value=99)
+        sheet.set_contents = Mock()
+        self.window.sheets.return_value = [sheet]
+        self.window.num_groups.return_value = 2
+        self.preview._previews[7] = 99
+        for command_type, old_group, target, keep_source in (
+            (self.preview.MarkdownPreviewToSideCommand, 0, 1, True),
+            (self.preview.MarkdownPreviewCommand, 1, 0, False),
+            (self.preview.MarkdownPreviewToSideCommand, 1, 1, True),
+        ):
+            with self.subTest(command=command_type.__name__, old_group=old_group):
+                self.window.reset_mock()
+                self.window.get_sheet_index.return_value = (old_group, 0)
+                command = command_type()
+                command.view = self.view
+                with patch.object(self.preview, '_render', return_value='contents'):
+                    command.run(None)
+                self.window.new_html_sheet.assert_not_called()
+                if old_group != target:
+                    self.window.set_sheet_index.assert_called_once_with(sheet, target, 0)
+                else:
+                    self.window.set_sheet_index.assert_not_called()
+                self.window.focus_sheet.assert_called_once_with(sheet)
+                if keep_source:
+                    self.window.focus_view.assert_called_once_with(self.view)
+                else:
+                    self.window.focus_view.assert_not_called()

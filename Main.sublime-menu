@@ -4,7 +4,8 @@
         "mnemonic": "T",
         "id": "tools",
         "children": [
-            { "caption": "Markdown Preview", "command": "markdown_preview" }
+            { "caption": "Markdown Preview", "command": "markdown_preview" },
+            { "caption": "Markdown Preview to the Side", "command": "markdown_preview_to_side" }
         ]
     }
 ]

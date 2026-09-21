@@ -8,16 +8,20 @@ type (debounced) and on save.
 Normal text uses Sublime's system UI font. Tables, code blocks, and inline code
 use the source editor's configured `font_face`.
 
-> Requires **Sublime Text 4** (uses `window.new_html_sheet`, Python 3.8 host).
+> Requires **Sublime Text 4** (uses `window.new_html_sheet`, Python 3.8+ host).
 
 ## Usage
 
 - Open a `.md` file.
-- Command Palette → **Markdown Preview: Open / Refresh** (or `⌘K ⌘M`, or
-  **Tools → Markdown Preview**).
-- A `Preview: <file>` tab opens in the adjacent group and updates as you edit.
-- Run the command again to refresh / focus the existing preview (it reuses the
-  same sheet rather than opening duplicates).
+- **Markdown Preview: Open Preview** opens a preview in the current group and
+  focuses it (`⌘K ⌘M`, or **Tools → Markdown Preview**).
+- **Markdown Preview: Open Preview to the Side** opens a preview in the adjacent
+  group and keeps focus on the source. It creates a split if needed, using the
+  `preview_width` setting (default: half the window).
+- Both commands are available in the Command Palette and Tools menu. They reuse
+  and refresh the same preview, moving it to the requested group when needed.
+  The preview continues to update as you edit. The old `open_to_side` setting is
+  no longer used.
 - Click a local file link to open Markdown in a preview, or other files in the
   editor. Relative links resolve from the source file's folder; web links open
   in your browser. Links to a Markdown heading open the file's preview without
