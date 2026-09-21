@@ -1796,6 +1796,7 @@ class Markdown(object):
             # The next '[' is the start of:
             # - an inline anchor:   [text](url "title")
             # - a reference anchor: [text][id]
+            # - a shortcut anchor:  [id]
             # - an inline img:      ![text](url "title")
             # - a reference img:    ![text][id]
             # - a footnote ref:     [^id]
@@ -1922,12 +1923,15 @@ class Markdown(object):
             # Reference anchor or img?
             else:
                 match = self._tail_of_reference_link_re.match(text, p)
-                if match:
+                if match or link_text.lower() in self.urls:
                     # Handle a reference-style anchor or img.
+                    # Shortcut references use the text itself as the ID and
+                    # end at the first closing bracket: [id] or ![id].
+                    link_end = match.end() if match else p
                     is_img = start_idx > 0 and text[start_idx - 1] == "!"
                     if is_img:
                         start_idx -= 1
-                    link_id = match.group("id").lower()
+                    link_id = match.group("id").lower() if match else link_text.lower()
                     if not link_id:
                         link_id = link_text.lower()  # for links like [this][]
                     if link_id in self.urls:
@@ -1959,7 +1963,7 @@ class Markdown(object):
                             if "smarty-pants" in self.extras:
                                 result = result.replace('"', self._escape_table['"'])
                             curr_pos = start_idx + len(result)
-                            text = text[:start_idx] + result + text[match.end() :]
+                            text = text[:start_idx] + result + text[link_end:]
                         elif start_idx >= anchor_allowed_pos:
                             if self.safe_mode and not self._safe_href.match(url):
                                 result_head = '<a href="#"%s>' % (title_str)
@@ -1975,7 +1979,7 @@ class Markdown(object):
                             # anchor_allowed_pos on.
                             curr_pos = start_idx + len(result_head)
                             anchor_allowed_pos = start_idx + len(result)
-                            text = text[:start_idx] + result + text[match.end() :]
+                            text = text[:start_idx] + result + text[link_end:]
                         else:
                             # Anchor not allowed here.
                             curr_pos = start_idx + 1

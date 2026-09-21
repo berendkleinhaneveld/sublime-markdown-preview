@@ -44,6 +44,59 @@ class LinkRenderingTests(unittest.TestCase):
                 document = markdown_to_minihtml('[link]({})'.format(href))
                 self.assertIn('href="{}"'.format(href), document)
 
+    def test_reference_link_forms(self):
+        for label in ('[Guide]', '[Guide][]', '[Guide][guide]'):
+            with self.subTest(label=label):
+                document = markdown_to_minihtml(
+                    label + '\n\n[guide]: https://example.com "Help"\n'
+                )
+                self.assertIn(
+                    '<a href="https://example.com" title="Help">Guide</a>', document
+                )
+
+    def test_shortcut_local_link(self):
+        self.assertEqual(
+            self.target('[Guide]\n\n[guide]: next.md\n', '/project'),
+            '/project/next.md',
+        )
+
+    def test_reference_syntax_in_code_and_escaped_text_is_literal(self):
+        document = markdown_to_minihtml(
+            '`[guide]` and \\[guide] and [undefined]\n\n'
+            '```\n[guide]\n```\n\n[guide]: https://example.com\n'
+        )
+        self.assertNotIn('<a ', document)
+        self.assertIn('<code>[guide]</code>', document)
+        self.assertIn('[undefined]', document)
+
+    def test_explicit_reference_and_inline_link_take_precedence(self):
+        document = markdown_to_minihtml(
+            '[guide][missing]\n\n[guide](https://other.example)\n\n'
+            '[guide]: https://example.com\n'
+        )
+        self.assertIn('[guide][missing]', document)
+        self.assertIn('<a href="https://other.example">guide</a>', document)
+        self.assertNotIn('href="https://example.com"', document)
+
+    def test_shortcut_image(self):
+        document = markdown_to_minihtml(
+            '![logo]\n\n[logo]: images/logo.png "Logo"\n', '/project'
+        )
+        self.assertIn('src="file:///project/images/logo.png"', document)
+        self.assertIn('alt="logo" title="Logo"', document)
+
+    def test_readme_reference_links(self):
+        readme = Path(__file__).resolve().parents[1] / 'README.md'
+        document = markdown_to_minihtml(readme.read_text())
+        self.assertIn(
+            '<a href="https://www.sublimetext.com/docs/minihtml.html">minihtml</a>',
+            document,
+        )
+        self.assertIn(
+            '<a href="https://packagecontrol.io/packages/MarkdownPreview">'
+            'MarkdownPreview</a>', document,
+        )
+
 
 class LinkCommandTests(unittest.TestCase):
     def setUp(self):
