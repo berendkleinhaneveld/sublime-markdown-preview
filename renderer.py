@@ -19,8 +19,11 @@ relevant gaps:
 """
 
 import html as _html
+import json
 import os
 import re
+from urllib.parse import unquote, urlsplit
+from urllib.request import url2pathname
 
 try:  # packaged inside Sublime (folder must be hyphen-free for this to work)
     from . import markdown2
@@ -41,6 +44,9 @@ MARKDOWN_EXTRAS = [
 
 _TAG_RE = re.compile(r"(<[^>]+>)")
 _IMG_RE = re.compile(r'<img\b([^>]*?)\bsrc="([^"]*)"([^>]*)>', re.IGNORECASE)
+_LINK_RE = re.compile(
+    r'''(<a\b[^>]*?\s)href\s*=\s*(["'])(.*?)\2''', re.IGNORECASE | re.DOTALL
+)
 _TABLE_RE = re.compile(r"<table\b[^>]*>.*?</table>", re.IGNORECASE | re.DOTALL)
 _CODEBLOCK_RE = re.compile(
     r"<pre\b([^>]*)>\s*<code\b[^>]*>(.*?)</code>\s*</pre>", re.IGNORECASE | re.DOTALL
@@ -69,6 +75,7 @@ def markdown_to_minihtml(text, base_dir=".", colors=None, editor_font=None):
     html = _convert_task_lists(html)
     html = _number_ordered_lists(html)
     html = _absolutize_images(html, base_dir)
+    html = _local_links(html, base_dir)
     stylesheet = build_stylesheet(
         dict(DEFAULT_COLORS, **(colors or {})), editor_font=editor_font
     )
@@ -285,3 +292,27 @@ def _absolutize_images(html, base_dir):
         return '<img{0}src="{1}"{2}>'.format(pre, src, post)
 
     return _IMG_RE.sub(repl, html)
+
+
+def _local_links(html, base_dir):
+    """Route local file links through a command supported by HTML sheets."""
+    def repl(match):
+        href = _html.unescape(match.group(3))
+        try:
+            url = urlsplit(href)
+        except ValueError:
+            return match.group(0)
+        if url.scheme == "file":
+            if url.netloc not in ("", "localhost"):
+                return match.group(0)
+            path = url2pathname(url.path)
+        elif not url.scheme and not url.netloc and url.path:
+            path = unquote(url.path)
+        else:
+            # Keep web URLs and same-document anchors unchanged.
+            return match.group(0)
+        path = os.path.abspath(os.path.join(base_dir, path))
+        command = "subl:markdown_preview_open_link " + json.dumps({"path": path})
+        return '{}href="{}"'.format(match.group(1), _html.escape(command, quote=True))
+
+    return _LINK_RE.sub(repl, html)

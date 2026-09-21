@@ -18,6 +18,10 @@ use the source editor's configured `font_face`.
 - A `Preview: <file>` tab opens in the adjacent group and updates as you edit.
 - Run the command again to refresh / focus the existing preview (it reuses the
   same sheet rather than opening duplicates).
+- Click a local file link to open Markdown in a preview, or other files in the
+  editor. Relative links resolve from the source file's folder; web links open
+  in your browser. Links to a Markdown heading open the file's preview without
+  scrolling to the heading.
 
 ## Install (development)
 
@@ -30,6 +34,9 @@ ln -s "$PWD" \
 ```
 
 Then restart Sublime Text. (`Preferences → Browse Packages…` opens that folder.)
+
+[a link](styles.py)
+[external](https://www.sublimetext.com/docs/minihtml.html)
 
 ## Limitations
 

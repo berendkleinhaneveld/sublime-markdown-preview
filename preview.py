@@ -181,7 +181,7 @@ def _refresh(view):
 class MarkdownPreviewCommand(sublime_plugin.TextCommand):
     """Open the preview sheet for the current file, or refresh it if already open."""
 
-    def run(self, edit):
+    def run(self, edit, group=None, focus_preview=False):
         window = self.view.window()
         if window is None:
             return
@@ -190,20 +190,48 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
             sheet.set_contents(_render(self.view))
             window.focus_sheet(sheet)
             return
-        if _settings().get("open_to_side", True):
-            group = _side_group(window)
-        else:
-            group = window.active_group()
+        if group is None:
+            if _settings().get("open_to_side", True):
+                group = _side_group(window)
+            else:
+                group = window.active_group()
         sheet = window.new_html_sheet(
             _title(self.view), _render(self.view), group=group
         )
         _previews[self.view.id()] = sheet.id()
-        window.focus_view(self.view)
+        if focus_preview:
+            window.focus_sheet(sheet)
+        else:
+            window.focus_view(self.view)
 
     def is_enabled(self):
         return _is_markdown(self.view)
 
     is_visible = is_enabled
+
+
+class MarkdownPreviewOpenLinkCommand(sublime_plugin.WindowCommand):
+    """Open linked files, showing Markdown in a preview once it has loaded."""
+
+    def run(self, path):
+        if not os.path.isfile(path):
+            sublime.status_message("MarkdownPreview: file not found: " + path)
+            return
+        group = self.window.active_group()
+        view = self.window.open_file(path)
+
+        def on_loaded():
+            if not view.is_valid() or not self.window.is_valid():
+                return
+            if view.is_loading():
+                sublime.set_timeout(on_loaded, 50)
+                return
+            if _is_markdown(view):
+                view.run_command(
+                    "markdown_preview", {"group": group, "focus_preview": True}
+                )
+
+        on_loaded()
 
 
 class MarkdownLivePreviewCommand(sublime_plugin.TextCommand):
