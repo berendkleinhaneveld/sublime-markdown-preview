@@ -81,6 +81,19 @@ one the block is themed but single-colored.
 
 ### Testing the renderer without Sublime
 
+Run the test suite with Python's standard library (no Sublime installation or
+additional packages required):
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+The suite covers rendering, links, theme and font styles, and preview lifecycle
+behavior using a stubbed Sublime API. Actual minihtml appearance still needs to
+be checked in Sublime.
+
+To print a rendered sample:
+
 ```sh
 python3 -c "from renderer import markdown_to_minihtml; \
 print(markdown_to_minihtml(open('sample.md').read(), '.'))"

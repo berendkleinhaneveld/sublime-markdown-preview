@@ -1,12 +1,11 @@
 import html
-import importlib
 import json
 from pathlib import Path
-import sys
 import tempfile
-import types
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
+
+from sublime_stub import PreviewTestCase
 
 from renderer import markdown_to_minihtml
 
@@ -98,22 +97,9 @@ class LinkRenderingTests(unittest.TestCase):
         )
 
 
-class LinkCommandTests(unittest.TestCase):
+class LinkCommandTests(PreviewTestCase):
     def setUp(self):
-        self.sublime = types.ModuleType('sublime')
-        self.sublime.status_message = Mock()
-        self.sublime.set_timeout = Mock()
-        plugin = types.ModuleType('sublime_plugin')
-        plugin.TextCommand = plugin.WindowCommand = plugin.EventListener = object
-        package = types.ModuleType('_preview_link_tests')
-        package.__path__ = [str(Path(__file__).resolve().parents[1])]
-        self.modules = patch.dict(sys.modules, {
-            'sublime': self.sublime, 'sublime_plugin': plugin,
-            '_preview_link_tests': package,
-        })
-        self.modules.start()
-        self.addCleanup(self.modules.stop)
-        self.preview = importlib.import_module('_preview_link_tests.preview')
+        super().setUp()
         self.command = self.preview.MarkdownPreviewOpenLinkCommand()
         self.command.window = Mock()
         self.command.window.active_group.return_value = 1
