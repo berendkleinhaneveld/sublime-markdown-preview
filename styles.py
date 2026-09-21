@@ -17,12 +17,13 @@ DEFAULT_COLORS = {
     "quote": "#57606a",
 }
 
-# %(...)s placeholders are filled via `_STYLESHEET % colors`. Using percent
+# %(...)s placeholders are filled via `_STYLESHEET % merged`. Using percent
 # formatting (not str.format) keeps the literal CSS braces untouched.
 _STYLESHEET = """
 body#markdown-preview {
     background-color: %(background)s;
     color: %(foreground)s;
+    font-family: system;
     font-size: 1rem;
     margin: 0;
     padding: 0;
@@ -46,7 +47,7 @@ code {
     color: %(code_foreground)s;
     padding: 1px 4px;
     border-radius: 3px;
-    font-family: monospace;
+    font-family: %(editor_font)s;
 }
 .code-block, .table-block {
     background-color: %(code_background)s;
@@ -54,7 +55,7 @@ code {
     border-radius: 4px;
     padding: 8px 12px;
     margin: 10px 0;
-    font-family: monospace;
+    font-family: %(editor_font)s;
     font-size: 0.9rem;
     line-height: 1.4;
 }
@@ -72,15 +73,26 @@ li { line-height: 1.5; margin: 2px 0; }
 .md-li { margin: 2px 0; line-height: 1.5; }
 .li-num { color: %(quote)s; font-weight: bold; }
 .task-item { margin: 2px 0; line-height: 1.5; }
-.checkbox { font-family: monospace; }
+.checkbox { font-family: %(editor_font)s; }
 hr { border: none; border-top: 1px solid %(border)s; margin: 16px 0; }
 img { }
 """
 
 
-def build_stylesheet(colors):
-    """Return the CSS string with the given color map applied."""
+def build_stylesheet(colors, editor_font=None):
+    """Apply colors and the source view's font; prose uses Sublime's UI font."""
     merged = dict(DEFAULT_COLORS, **(colors or {}))
+    # Quote the font as a single CSS family. Escape markup delimiters as well
+    # because the stylesheet is embedded directly in a minihtml style element.
+    if editor_font:
+        escaped = "".join(
+            "\\{:x} ".format(ord(char))
+            if char in '\\"<>&' or ord(char) < 32 else char
+            for char in editor_font
+        )
+        merged["editor_font"] = '"{}", monospace'.format(escaped)
+    else:
+        merged["editor_font"] = "monospace"
     return _STYLESHEET % merged
 
 

@@ -5,6 +5,9 @@ external dependencies. The current file is rendered into a Sublime HTML sheet
 (a tab) using Sublime's built-in [minihtml] engine, and refreshes live as you
 type (debounced) and on save.
 
+Normal text uses Sublime's system UI font. Tables, code blocks, and inline code
+use the source editor's configured `font_face`.
+
 > Requires **Sublime Text 4** (uses `window.new_html_sheet`, Python 3.8 host).
 
 ## Usage

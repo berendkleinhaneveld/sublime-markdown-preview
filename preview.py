@@ -57,7 +57,10 @@ def _render(view):
     text = view.substr(sublime.Region(0, view.size()))
     fname = view.file_name()
     base_dir = os.path.dirname(fname) if fname else "."
-    html = markdown_to_minihtml(text, base_dir, colors=theme_colors(view))
+    html = markdown_to_minihtml(
+        text, base_dir, colors=theme_colors(view),
+        editor_font=view.settings().get("font_face"),
+    )
     return _highlight_code_blocks(view, text, html)
 
 

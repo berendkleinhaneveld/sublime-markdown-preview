@@ -59,7 +59,7 @@ _UNCHECKED = "☐"  # ballot box (U+2610)
 _ABS_URL_RE = re.compile(r"^(?:[a-z][a-z0-9+.\-]*:|//)", re.IGNORECASE)
 
 
-def markdown_to_minihtml(text, base_dir=".", colors=None):
+def markdown_to_minihtml(text, base_dir=".", colors=None, editor_font=None):
     """Render markdown `text` to a complete minihtml document string."""
     html = markdown2.markdown(text, extras=MARKDOWN_EXTRAS)
     html = _convert_code_blocks(html)
@@ -69,7 +69,9 @@ def markdown_to_minihtml(text, base_dir=".", colors=None):
     html = _convert_task_lists(html)
     html = _number_ordered_lists(html)
     html = _absolutize_images(html, base_dir)
-    stylesheet = build_stylesheet(dict(DEFAULT_COLORS, **(colors or {})))
+    stylesheet = build_stylesheet(
+        dict(DEFAULT_COLORS, **(colors or {})), editor_font=editor_font
+    )
     return (
         '<body id="markdown-preview">\n'
         "<style>{css}</style>\n"
