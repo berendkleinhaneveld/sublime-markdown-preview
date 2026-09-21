@@ -35,9 +35,6 @@ ln -s "$PWD" \
 
 Then restart Sublime Text. (`Preferences → Browse Packages…` opens that folder.)
 
-[a link](styles.py)
-[external](https://www.sublimetext.com/docs/minihtml.html)
-
 ## Limitations
 
 These all come from minihtml being a limited subset of HTML/CSS — the plugin
