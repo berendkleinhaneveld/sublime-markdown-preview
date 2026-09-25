@@ -2364,17 +2364,15 @@ class Markdown(object):
             codeblock = codeblock.lstrip("\n")  # trim leading newlines
             codeblock = codeblock.rstrip()  # trim trailing whitespace
 
-        # Use pygments only if not using the highlightjs-lang extra
-        if lexer_name and "highlightjs-lang" not in self.extras:
-            lexer = self._get_pygments_lexer(lexer_name)
-            if lexer:
-                leading_indent = " " * (
-                    len(match.group(1)) - len(match.group(1).lstrip())
-                )
-                return self._code_block_with_lexer_sub(
-                    codeblock, leading_indent, lexer, is_fenced_code_block
-                )
-
+        # LOCAL PATCH (not in upstream 2.4.13): never highlight with pygments.
+        # Upstream routes language-hinted fences through _color_with_pygments
+        # whenever pygments is importable, skipping the data-md-fenced tagging
+        # below and emitting codehilite markup this renderer doesn't convert.
+        # That silently breaks the preview's fence-to-region mapping whenever
+        # the plugin host can import pygments (e.g. a package ships it). The
+        # preview highlights every fenced block with Sublime's own engine
+        # instead (preview._highlight_code_blocks), so the pygments path is
+        # never wanted here.
         pre_class_str = self._html_class_str_from_tag("pre")
 
         if "highlightjs-lang" in self.extras and lexer_name:

@@ -1,4 +1,7 @@
+import sys
+import types
 import unittest
+from unittest.mock import patch
 
 from renderer import markdown_to_minihtml
 
@@ -27,6 +30,48 @@ class RendererTests(unittest.TestCase):
         self.assertIn('id="md-code-0">first', result)
         self.assertIn('id="md-code-1">second', result)
         self.assertNotIn('md-code-2', result)
+
+    def test_language_fences_get_ids_even_when_pygments_importable(self):
+        """Language-hinted fences must keep their highlighting ids when the
+        plugin host can import pygments (some package ships it). markdown2
+        would otherwise route them through its own pygments highlighter,
+        skipping the data-md-fenced tagging and leaving the fence/div counts
+        mismatched, which silently disables Sublime-side highlighting."""
+        pygments = types.ModuleType('pygments')
+        lexers = types.ModuleType('pygments.lexers')
+        util = types.ModuleType('pygments.util')
+        formatters = types.ModuleType('pygments.formatters')
+
+        class ClassNotFound(Exception):
+            pass
+
+        util.ClassNotFound = ClassNotFound
+        lexers.get_lexer_by_name = lambda name: object()
+
+        class HtmlFormatter:
+            def __init__(self, **kwargs):
+                pass
+
+        formatters.HtmlFormatter = HtmlFormatter
+        pygments.highlight = (
+            lambda code, lexer, formatter:
+            '<div class="codehilite"><pre><code>colored\n</code></pre></div>\n'
+        )
+        pygments.lexers, pygments.util, pygments.formatters = (
+            lexers, util, formatters
+        )
+
+        with patch.dict(sys.modules, {
+            'pygments': pygments,
+            'pygments.lexers': lexers,
+            'pygments.util': util,
+            'pygments.formatters': formatters,
+        }):
+            result = body('```python\ncode\n```\n\n```js\nmore\n```\n\n```\nplain\n```')
+        self.assertIn('id="md-code-0">code', result)
+        self.assertIn('id="md-code-1">more', result)
+        self.assertIn('id="md-code-2">plain', result)
+        self.assertNotIn('codehilite', result)
 
     def test_table_alignment_and_plain_cell_text(self):
         result = body('| A | Long |\n|---|---|\n| **xx** | & |')
